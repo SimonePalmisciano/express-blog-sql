@@ -6,33 +6,14 @@ FUNZIONE CHE MOSTRA LA LISTA COMPLETA DEI POSTS
 COME PAGINA PRINCIPALE
 metodo : 'GET'   http://localhost:3000/posts
 */
-function index(request, response) {
-    const { tags: searchTags, } = request.query;
+async function index(request, response) {
+    const [rows] = await connection.query('SELECT * FROM posts');
 
-    if (searchTags === undefined) {
-        return response.json(posts);
-    }
-
-    if (searchTags.trim() === '') {
-        return response.status(400)
-            .json({
-                errore: 'valore vuoto, per favore riempi "?tags="',
-                risultato: null
-            });
-    }
-
-    const postFiltered = posts.filter(post => {
-        for (let z = 0; z < post.tags.length; z++) {
-            console.log(post.tags[z].indexOf(searchTags));
-            if (post.tags[z].indexOf(searchTags) !== -1) {
-                return true;
-            }
-        }
-
-        return post.tags.includes(searchTags);
-    })
-
-    response.json(postFiltered);
+    response.status(204)
+        .json({
+            error: null,
+            results: rows
+        });
 }
 
 /* 
