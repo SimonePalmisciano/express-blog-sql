@@ -8,18 +8,4 @@ const connection = await createConnection({
     database: process.env.DB_DATABASE
 });
 
-const query = `
-SELECT *
-FROM posts;
-`;
-
-try {
-    const [rows] = await connection.query(query);
-    console.log(rows);
-
-} catch (error) {
-    console.error('errore: ' + error.message);
-}
-
-
-await connection.end();
+export default connection;

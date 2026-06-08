@@ -1,5 +1,5 @@
 import { posts } from "../data/posts.data.js";
-
+import connection from '../data/db.js';
 
 /* 
 FUNZIONE CHE MOSTRA LA LISTA COMPLETA DEI POSTS
@@ -9,7 +9,7 @@ metodo : 'GET'   http://localhost:3000/posts
 async function index(request, response) {
     const [rows] = await connection.query('SELECT * FROM posts');
 
-    response.status(204)
+    response.status(200)
         .json({
             error: null,
             results: rows
@@ -21,9 +21,8 @@ FUNZIONE CHE MOSTRA IL POST CHE ABBIAMO CERCATO
 E PASSATO TRAMITE PARAMETRO NELL'URL
 metodo : 'GET'  http://localhost:3000/posts/1
 */
-function show(request, response) {
+async function show(request, response) {
     const { id } = request.params;
-
     const realId = Number(id.trim());
 
     if (isNaN(realId) || realId <= 0) {
@@ -35,23 +34,39 @@ function show(request, response) {
         return;
     }
 
-    const postFound = posts.find(post => {
-        return post.id === realId;
-    });
+    try {
+        const [result] = await connection.execute(`
+            DELETE FROM posts WHERE id = ?
+            `
+        [realId]
+        );
 
-    if (postFound === undefined) {
-        response.status(400)
+        const postFound = postRows[0];
+
+        const [tagResult] = await connection.execute(`
+            SELECT *
+            FROM tags
+                JOIN post_tag
+                    ON post_tag.tag_id = tags.id
+            WHERE post_tag.post_id = ?;
+            `,
+            [realId]
+        )
+
+        const finalResult = {
+            ...postFound,
+            tags: tagResult
+        };
+
+        response.status(200)
             .json({
-                errore: 'post non trovato',
-                risultato: null
-            })
-        return;
+                error: null,
+                risultato: finalResult
+            });
+    } catch (error) {
+        console.error('errore: ' + error.message);
     }
 
-    response.json({
-        errore: null,
-        risultato: postFound
-    });
 }
 
 /* 
@@ -134,9 +149,8 @@ FUNZIONE CHE MOSTRA PERMETTE DI ELIMINARE UN POST NEL NOSTRO
 ARRAY DI POSTS
 metodo : 'DELETE'  http://localhost:3000/posts
 */
-function destroy(request, response) {
+async function destroy(request, response) {
     const { id } = request.params;
-
     const realId = Number(id.trim());
 
     if (isNaN(realId) || realId <= 0) {
@@ -148,21 +162,15 @@ function destroy(request, response) {
         return;
     }
 
-    const postFound = posts.findIndex(post => {
-        return post.id === realId;
-    });
-
-    if (postFound === -1) {
-        response.json({
-            errore: 'post non trovato',
-            risultato: null
-        })
-        return;
+    try {
+        const [result] = await connection.execute(`
+            DELETE FROM posts WHERE id = ?
+            `
+        [realId]
+        );
+    } catch (error) {
+        console.error('errore: ' + error.message);
     }
-
-    posts.splice(postFound, 1);
-
-    response.json(posts);
 }
 
 export {
